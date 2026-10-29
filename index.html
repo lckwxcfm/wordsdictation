@@ -459,6 +459,7 @@
 
         // ================= 教师端编辑逻辑 =================
 
+        // 核心修复：修改 addEditRow 让其返回创建的 DOM，以便我们后续控制
         function addEditRow(cn = "", en = "") {
             const list = document.getElementById('editor-list');
             const row = document.createElement('div');
@@ -469,12 +470,15 @@
                 <button class="btn-del" onclick="this.parentElement.remove()">🗑️</button>
             `;
             list.appendChild(row);
+            return row; // 返回这一行
         }
 
         function parseBulk() {
             const text = document.getElementById('bulk-input').value;
             if (!text.trim()) return;
             const lines = text.split('\n');
+            let parsedCount = 0;
+
             lines.forEach(line => {
                 line = line.trim();
                 if (!line) return;
@@ -482,12 +486,19 @@
                 if (parts.length >= 2) {
                     let p1 = parts[0].trim();
                     let p2 = parts[1].trim();
-                    if (/[\u4e00-\u9fa5]/.test(p1)) { addEditRow(p1, p2); } 
-                    else { addEditRow(p2, p1); }
+                    
+                    // 智能判断中英文
+                    if (/[\u4e00-\u9fa5]/.test(p1)) { 
+                        addEditRow(p1, p2); 
+                    } else { 
+                        addEditRow(p2, p1); 
+                    }
+                    parsedCount++;
                 }
             });
+            
             document.getElementById('bulk-input').value = '';
-            document.getElementById('teacher-feedback').textContent = `✅ 解析完成，请点击下方保存！`;
+            document.getElementById('teacher-feedback').textContent = `✅ 成功解析并添加了 ${parsedCount} 道题目，请点击下方保存！`;
             document.getElementById('teacher-feedback').className = "feedback correct";
         }
 
