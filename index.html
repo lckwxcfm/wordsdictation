@@ -1,642 +1,476 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Millie's 在线默写系统 (终极完全体)</title>
-    <style>
-        :root {
-            --bg: #121212; --card-bg: #1e1e1e; --text: #e0e0e0;
-            --primary: #4caf50; --error: #f44336; --warning: #ff9800; --border: #333;
-            --teacher: #0071e3;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, sans-serif; }
-        body { background-color: var(--bg); color: var(--text); display: flex; flex-direction: column; align-items: center; min-height: 100vh; padding: 20px; }
-        h1 { margin-top: 20px; font-size: 24px; color: #fff; text-align: center; }
-        .subtitle { color: #888; font-size: 14px; margin-bottom: 20px; text-align: center; }
-
-        .layout { display: flex; flex-direction: column; gap: 20px; width: 100%; max-width: 700px; }
-
-        /* 登入/验证区 */
-        .login-container { background-color: var(--card-bg); padding: 40px 30px; border-radius: 16px; border: 1px solid var(--border); width: 100%; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        .login-container input, .login-container select { width: 100%; padding: 15px; border-radius: 8px; border: 2px solid var(--border); background-color: #121212; color: #fff; font-size: 18px; outline: none; margin-bottom: 15px; }
-        .login-container input:focus, .login-container select:focus { border-color: var(--primary); }
-        
-        .role-select { display: flex; gap: 10px; margin-bottom: 15px; }
-        .role-btn { flex: 1; padding: 10px; border: 2px solid var(--border); background: transparent; color: #888; border-radius: 8px; cursor: pointer; font-weight: bold; }
-        .role-btn.active { border-color: var(--primary); color: var(--primary); background: rgba(76, 175, 80, 0.1); }
-
-        /* 通用容器 */
-        .quiz-container, .teacher-container { display: none; background-color: var(--card-bg); padding: 30px; border-radius: 16px; border: 1px solid var(--border); width: 100%; }
-        
-        .question { font-size: 22px; font-weight: bold; margin-bottom: 20px; text-align: center; color: #fff; }
-        .input-group { display: flex; flex-direction: column; gap: 15px; }
-        input[type="text"], input[type="password"], textarea { width: 100%; padding: 15px; border-radius: 8px; border: 2px solid var(--border); background-color: #121212; color: #fff; font-size: 16px; outline: none; font-family: inherit; }
-        input[type="text"]:focus, input[type="password"]:focus, textarea:focus { border-color: var(--primary); }
-        textarea { resize: vertical; min-height: 120px; line-height: 1.5; }
-        
-        button { padding: 15px; border-radius: 8px; border: none; background-color: var(--primary); color: white; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        button:disabled { opacity: 0.5; cursor: not-allowed; }
-        button:hover { opacity: 0.8; }
-        
-        .feedback { margin-top: 15px; font-size: 16px; text-align: center; min-height: 24px; font-weight: bold; line-height: 1.5; }
-        .correct { color: var(--primary); } .wrong { color: var(--error); } .skip { color: var(--warning); }
-        
-        .progress-bar { width: 100%; height: 6px; background-color: #333; border-radius: 3px; margin-bottom: 20px; overflow: hidden; }
-        .progress-fill { height: 100%; background-color: var(--primary); width: 0%; transition: width 0.3s; }
-
-        /* 排行榜 */
-        .leaderboard { background-color: var(--card-bg); padding: 20px; border-radius: 16px; width: 100%; border: 1px solid var(--border); }
-        .leaderboard h2 { font-size: 18px; text-align: center; margin-bottom: 15px; color: #ffca28; }
-        .rank-list { list-style: none; padding: 0; }
-        .rank-list li { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid var(--border); font-size: 16px; }
-        .rank-list li:last-child { border-bottom: none; }
-        .rank-score { color: var(--primary); font-weight: bold; font-size: 18px; }
-
-        /* ======= 教师端 UI ======= */
-        .teacher-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .teacher-header h2 { color: var(--teacher); margin: 0; }
-        
-        /* 大厅界面 */
-        .lobby-box { background: #252525; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
-        .lobby-box h3 { margin-bottom: 15px; color: #fff; font-size: 16px; }
-        
-        /* 滑动列表容器 */
-        .list-container {
-            max-height: 250px;
-            overflow-y: auto;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            margin-bottom: 15px;
-            background: #1a1a1a;
-        }
-        
-        .list-item {
-            padding: 15px;
-            border-bottom: 1px solid var(--border);
-            cursor: pointer;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            transition: background 0.2s;
-        }
-        .list-item:hover { background: #333; }
-        .list-item.active { background: rgba(0, 113, 227, 0.2); border-left: 4px solid var(--teacher); }
-        
-        /* 自定义滚动条 */
-        .list-container::-webkit-scrollbar { width: 8px; }
-        .list-container::-webkit-scrollbar-track { background: #121212; }
-        .list-container::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
-        .list-container::-webkit-scrollbar-thumb:hover { background: #555; }
-
-        .btn-row { display: flex; gap: 10px; }
-        .btn-enter { flex: 1; background-color: var(--teacher); }
-        .btn-icon { padding: 10px 15px; font-size: 18px; background-color: #444; }
-        .btn-icon:hover { background-color: #555; }
-        .btn-del-icon { background-color: #4a1c1c; color: #f44336; }
-        .btn-del-icon:hover { background-color: #6b2626; }
-        
-        /* 编辑界面 */
-        .editor-header { display: flex; justify-content: space-between; align-items: center; background: #252525; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
-        .editor-title { font-size: 18px; font-weight: bold; color: var(--teacher); }
-        .btn-back { background-color: #444; padding: 10px 15px; font-size: 14px; }
-
-        .edit-row { display: flex; gap: 10px; margin-bottom: 10px; background: #2a2a2a; padding: 10px; border-radius: 8px; align-items: center; }
-        .edit-row input { margin-bottom: 0; padding: 10px; font-size: 14px; }
-        .edit-row .edit-cn { flex: 1; }
-        .edit-row .edit-en { flex: 1.5; }
-        .btn-del { background-color: var(--error); padding: 8px 12px; font-size: 14px; }
-        
-        .btn-add { background-color: #444; width: 100%; margin-bottom: 15px; border: 1px dashed #888; }
-        .btn-add:hover { background-color: #555; }
-        
-        .bulk-area { border: 1px solid var(--teacher); padding: 15px; border-radius: 8px; margin-bottom: 20px; background: rgba(0, 113, 227, 0.05); }
-        .bulk-area h3 { font-size: 15px; color: var(--teacher); margin-bottom: 10px; }
-        
-        .btn-parse { background-color: var(--teacher); width: 100%; margin-top: 10px; }
-        .btn-save { background-color: var(--teacher); width: 100%; padding: 18px; font-size: 18px; margin-top: 15px; }
-        .btn-logout { background-color: transparent; border: 1px solid #555; color: #aaa; padding: 8px 15px; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Millie's 在线默写系统（极速防断网版）</title>
+<style>
+:root{--bg:#121212;--card:#1e1e1e;--text:#e0e0e0;--primary:#00ccff;--error:#f44336;--warning:#ff9800;--border:#333;--teacher:#0071e3}
+*{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+body{background:var(--bg);color:var(--text);min-height:100vh;padding:20px;display:flex;flex-direction:column;align-items:center}
+h1{margin:16px 0 6px;font-size:24px;color:#fff;text-align:center}.subtitle{color:#888;font-size:14px;margin-bottom:22px;text-align:center}
+.layout{width:100%;max-width:760px;display:flex;flex-direction:column;gap:18px}
+.card{background:var(--card);padding:24px;border:1px solid var(--border);border-radius:16px;width:100%}
+.login{text-align:center;padding:30px}.login h2{margin-bottom:18px}
+input,select,textarea{width:100%;padding:13px;border-radius:8px;border:2px solid var(--border);background:#121212;color:#fff;font-size:16px;outline:none;margin-bottom:12px}
+input:focus,select:focus,textarea:focus{border-color:var(--primary)}
+button{padding:13px 15px;border:0;border-radius:8px;background:var(--primary);color:#071318;font-weight:700;font-size:15px;cursor:pointer;transition:.2s}
+button:hover{filter:brightness(1.08)}button:disabled{opacity:.55;cursor:not-allowed}
+.role,.mode,.row{display:flex;gap:10px}.role button,.mode button{flex:1;background:transparent;border:1px solid #444;color:#999}.role button.active,.mode button.active{border-color:var(--primary);color:var(--primary);background:#00313b}
+#teacher-pass-container{display:none}
+#quiz-area,#result-area,#teacher-area,#leaderboard-area{display:none}
+.question{font-size:23px;font-weight:700;text-align:center;color:white;margin:20px 0}
+.progress{height:6px;background:#333;border-radius:4px;overflow:hidden}.progress-fill{height:100%;width:0;background:var(--primary);transition:width .2s}
+.feedback{text-align:center;min-height:24px;line-height:1.5;margin-top:14px;font-weight:700}.correct{color:#00ccff}.wrong{color:var(--error)}.skip{color:var(--warning)}
+.result{text-align:center}.score{font-size:48px;font-weight:800;color:var(--primary);margin:18px 0}
+.teacher-header,.editor-header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}.teacher-header h2,.editor-title{color:var(--teacher)}
+.lobby-box{background:#252525;padding:18px;border-radius:10px;margin-bottom:16px}.lobby-box h3{margin-bottom:12px;color:#fff;font-size:16px}
+.list-container{max-height:230px;overflow:auto;border:1px solid #383838;border-radius:8px;margin-bottom:12px}
+.list-item{padding:13px;cursor:pointer;border-bottom:1px solid #333;display:flex;justify-content:space-between;gap:12px}.list-item:last-child{border-bottom:0}.list-item:hover{background:#333}.list-item.active{background:#07313b;border-left:4px solid var(--primary)}
+.btn-blue{background:var(--teacher);color:#fff}.btn-gray{background:#444;color:#eee}.btn-red{background:#4a1c1c;color:#ff7777}.btn-orange{background:var(--warning);color:#111}
+.btn-row{display:flex;gap:8px;margin-bottom:10px}.btn-row>*{flex:1}
+textarea{min-height:115px;resize:vertical;line-height:1.5}
+.edit-row{display:flex;gap:8px;align-items:center;background:#292929;padding:8px;border-radius:8px;margin-bottom:8px}.edit-row .idx{width:24px;text-align:center;color:#888;flex-shrink:0}.edit-row input{margin:0;padding:10px;min-width:0}.edit-cn{flex:1}.edit-en{flex:1.4}.edit-row button{padding:9px;background:var(--error);color:#fff}
+.bulk-area{border:1px solid var(--teacher);padding:14px;border-radius:8px;margin-bottom:16px}.bulk-area h3{color:#6db5ff;margin-bottom:8px}
+table{width:100%;border-collapse:collapse;font-size:14px;margin-top:12px}th,td{border:1px solid #383838;padding:9px;text-align:center;overflow-wrap:anywhere}th{background:#333;color:var(--primary)}tr:nth-child(even){background:#252525}
+.small{font-size:13px;color:#999;line-height:1.5}.hidden{display:none!important}
+.tag { font-size: 12px; background: #0071e3; color: white; padding: 2px 6px; border-radius: 4px; margin-right: 6px; }
+@media(max-width:520px){body{padding:12px}.card{padding:17px}.edit-row{flex-wrap:wrap}.edit-row .idx{width:20px}.edit-cn,.edit-en{flex:1 1 38%}.teacher-header{align-items:flex-start}.btn-row{flex-wrap:wrap}.btn-row>*{min-width:80px}}
+</style>
 </head>
 <body>
-
-    <h1>Millie's 在线默写系统</h1>
-    <div class="subtitle">师生互动 · 批量导入 · 单元管理</div>
-
-    <div class="layout">
-        <!-- 登入界面 -->
-        <div class="login-container" id="login-area">
-            <h2>请选择身份登入</h2>
-            <div class="role-select">
-                <button class="role-btn active" id="btn-role-student" onclick="setRole('student')">👨‍🎓 学生</button>
-                <button class="role-btn" id="btn-role-teacher" onclick="setRole('teacher')">👩‍🏫 教师</button>
-            </div>
-            <input type="text" id="player-name" placeholder="输入名字..." autocomplete="off">
-            
-            <div id="student-list-container" style="display: block;">
-                <select id="student-list-select">
-                    <option value="">加载词单中...</option>
-                </select>
-            </div>
-            
-            <div id="teacher-pass-container" style="display: none;">
-                <input type="password" id="teacher-password" placeholder="请输入教师密码...">
-            </div>
-
-            <button onclick="login()" id="login-btn">进入系统</button>
-        </div>
-
-        <!-- 学生答题区 -->
-        <div class="quiz-container" id="quiz-area">
-            <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
-            <div class="question" id="question-text">Loading...</div>
-            <div class="input-group">
-                <input type="text" id="answer-input" placeholder="输入英文..." autocomplete="off" spellcheck="false">
-                <button onclick="handleBtnClick()" id="submit-btn">提交答案 (回车)</button>
-            </div>
-            <div class="feedback" id="feedback-text"></div>
-        </div>
-
-        <!-- 教师端 -->
-        <div class="teacher-container" id="teacher-area">
-            <div class="teacher-header">
-                <h2>👩‍🏫 教师控制台</h2>
-                <button class="btn-logout" onclick="location.reload()">退出</button>
-            </div>
-            
-            <!-- 阶段1：词单大厅 -->
-            <div id="teacher-lobby">
-                <div class="lobby-box">
-                    <h3>管理已有词单：</h3>
-                    
-                    <!-- 滑动列表容器 -->
-                    <div class="list-container" id="teacher-list-container">
-                        <!-- 动态生成列表项 -->
-                    </div>
-
-                    <div class="btn-row">
-                        <button class="btn-enter" onclick="enterList()">进入选中词单</button>
-                        <button class="btn-icon" onclick="renameList()" title="修改名字">✏️</button>
-                        <button class="btn-icon btn-del-icon" onclick="deleteList()" title="删除词单">🗑️</button>
-                    </div>
-                </div>
-                
-                <div class="lobby-box">
-                    <h3>创建新词单：</h3>
-                    <input type="text" id="new-list-name" placeholder="输入新词单名 (如: Unit 1)" style="margin-bottom: 15px;">
-                    <button class="btn-enter" style="background-color: var(--warning); width: 100%;" onclick="createNewList()" id="btn-create-list">➕ 创建新词单</button>
-                </div>
-                <div class="feedback" id="lobby-feedback"></div>
-            </div>
-
-            <!-- 阶段2：词单编辑区 -->
-            <div id="teacher-editor" style="display: none;">
-                <div class="editor-header">
-                    <div class="editor-title" id="current-list-title">Unit 1</div>
-                    <button class="btn-back" onclick="backToLobby()">↩ 返回大厅</button>
-                </div>
-
-                <div class="bulk-area">
-                    <h3>📋 批量粘贴区</h3>
-                    <p style="font-size: 12px; color: #aaa; margin-bottom: 8px;">格式示例：facility - 设施/设备</p>
-                    <textarea id="bulk-input" placeholder="在这里粘贴单词..."></textarea>
-                    <button class="btn-parse" onclick="parseBulk()">⚡ 智能解析并追加</button>
-                </div>
-
-                <div id="editor-list" style="max-height: 400px; overflow-y: auto;">
-                    <!-- 动态生成输入框 -->
-                </div>
-                
-                <button class="btn-add" onclick="addEditRow()">➕ 手动增加一题</button>
-                <button class="btn-save" onclick="saveQuestions()">💾 保存当前词单</button>
-                <div class="feedback" id="teacher-feedback"></div>
-            </div>
-        </div>
-
-        <!-- 排行榜区 -->
-        <div class="leaderboard">
-            <h2 id="board-title">👥 挑战者状态</h2>
-            <ul class="rank-list" id="rank-list">
-                <li><span>等待玩家加入...</span></li>
-            </ul>
-        </div>
+<h1>Millie's 在线默写系统</h1>
+<div class="subtitle">支持多年级/班级词单 · 师生互动</div>
+<div class="layout">
+  <section class="card login" id="login-area">
+    <h2>请选择身份登入</h2>
+    <div class="role" style="margin-bottom:14px">
+      <button id="btn-role-student" class="active" onclick="setRole('student')">👨‍🎓 学生</button>
+      <button id="btn-role-teacher" onclick="setRole('teacher')">👩‍🏫 教师</button>
     </div>
+    <input id="player-name" placeholder="输入名字..." autocomplete="off">
+    
+    <div id="student-controls">
+      <select id="student-grade-select" onchange="updateStudentDropdown()">
+        <option value="">请选择你的年级...</option>
+        <option value="Grade 7">Grade 7</option>
+        <option value="Grade 8">Grade 8</option>
+        <option value="Grade 9">Grade 9</option>
+        <option value="Grade 10">Grade 10</option>
+        <option value="Grade 11">Grade 11</option>
+        <option value="Grade 12">Grade 12</option>
+      </select>
+      
+      <div class="mode" style="margin-bottom:14px">
+        <button id="btn-mode-practice" class="active" onclick="setStudentMode('practice')">📖 自由练习</button>
+        <button id="btn-mode-exam" onclick="setStudentMode('exam')">✍️ 参加测验</button>
+      </div>
+      <select id="student-list-select"><option value="">先选择年级以加载词单</option></select>
+    </div>
+    
+    <div id="teacher-pass-container"><input type="password" id="teacher-password" placeholder="请输入教师密码..."></div>
+    <button style="width:100%" id="login-btn" onclick="login()">进入系统（回车）</button>
+    <div class="feedback" id="login-feedback"></div>
+  </section>
 
-    <script>
-        // ================= 配置区 =================
-        // ⚠️⚠️⚠️ 必须换成你真实的 JSONBIN 配置 ⚠️⚠️⚠️
-        const JSONBIN_KEY = "$2a$10$DCXVGO/cu6LJhWXN65Ylb.iDRAKebWx4jcaTm6yyikEkMJChyxovW"; 
-        const JSONBIN_BIN_ID = "6ae2c0feac6210605a5ade70"; 
-        
-        const API_URL = `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`;
-        const HEADERS = { "Content-Type": "application/json", "X-Master-Key": JSONBIN_KEY };
+  <section class="card" id="quiz-area">
+    <div class="row" style="justify-content:space-between"><span id="quiz-mode-label" style="color:var(--warning);font-weight:bold"></span><span id="quiz-list-name" class="small"></span></div>
+    <div class="progress" style="margin-top:14px"><div class="progress-fill" id="progress-fill"></div></div>
+    <div class="question" id="question-text">正在加载...</div>
+    <input type="text" id="answer-input" placeholder="输入英文..." autocomplete="off" spellcheck="false">
+    <button id="submit-btn" style="width:100%" onclick="checkAnswer()">提交答案（回车）</button>
+    <div class="feedback" id="feedback-text"></div>
+  </section>
 
-        const TEACHER_PASSWORD = "alevelchinese";
+  <section class="card result" id="result-area">
+    <h2 style="color:var(--warning)">🎉 挑战结束！</h2><p class="small" style="margin-top:8px">你的最终得分是：</p>
+    <div class="score" id="my-final-score">0 / 0</div><p id="result-desc" class="small" style="margin-bottom:20px"></p>
+    <button onclick="location.reload()">返回首页</button>
+  </section>
 
-        let currentRole = 'student'; 
-        let vocabulary = []; 
-        let currentIndex = 0;
-        let score = 0;
-        let isAnswered = false;
-        let playerName = "";
-        let playerId = "player_" + Math.floor(Math.random() * 1000000);
-        
-        let cloudData = {}; 
-        let allLists = {};  
-        let currentTeacherListId = ""; 
-        let selectedListIdForUI = ""; // 记录老师在列表中选中的项
+  <section class="card" id="teacher-area">
+    <div class="teacher-header"><h2>👩‍🏫 教师控制台</h2><button class="btn-gray" onclick="location.reload()">退出</button></div>
+    <div id="teacher-lobby">
+      <div class="lobby-box">
+        <h3>管理词单与考试</h3>
+        <div class="list-container" id="teacher-list-container"></div>
+        <div class="btn-row">
+          <button class="btn-blue" onclick="enterList()">进入编辑单词</button>
+          <button class="btn-gray" onclick="renameList()">✏️ 重命名</button>
+          <button class="btn-red" onclick="deleteList()">🗑️ 删除</button>
+        </div>
+        <button id="btn-exam-toggle" class="btn-orange" style="width:100%" onclick="toggleExamState()">开放该单元作为测验</button>
+      </div>
+      <div class="lobby-box">
+        <h3>创建新词单</h3>
+        <select id="new-list-grade" style="margin-bottom:8px;">
+          <option value="">选择年级...</option>
+          <option value="Grade 7">Grade 7</option>
+          <option value="Grade 8">Grade 8</option>
+          <option value="Grade 9">Grade 9</option>
+          <option value="Grade 10">Grade 10</option>
+          <option value="Grade 11">Grade 11</option>
+          <option value="Grade 12">Grade 12</option>
+        </select>
+        <input id="new-list-name" placeholder="输入词单名（如：Unit 1）" style="margin-bottom:8px;">
+        <button id="btn-create-list" style="width:100%" onclick="createNewList()">➕ 创建新词单</button>
+      </div>
+      <div class="lobby-box">
+        <h3>历史测验成绩单</h3>
+        <div class="btn-row"><button onclick="toggleRecordBoard()">📊 展开 / 刷新成绩单</button><button class="btn-gray" onclick="exportHistory()">导出 CSV</button></div>
+        <div id="record-board" class="hidden" style="max-height:320px;overflow:auto">
+          <table><thead><tr><th>交卷时间</th><th>学生姓名</th><th>年级</th><th>测试词单</th><th>得分</th></tr></thead><tbody id="record-tbody"></tbody></table>
+        </div>
+      </div>
+      <div class="feedback" id="lobby-feedback"></div>
+    </div>
+    <div id="teacher-editor" class="hidden">
+      <div class="editor-header"><div class="editor-title" id="current-list-title">词单编辑</div><button class="btn-gray" onclick="backToLobby()">↩ 返回大厅</button></div>
+      <div class="bulk-area"><h3>📋 批量粘贴区</h3><textarea id="bulk-input" placeholder="每行一个词条，例如：苹果 - apple"></textarea><button class="btn-blue" style="width:100%;margin-top:8px" onclick="parseBulk()">⚡ 智能解析并追加</button></div>
+      <div id="editor-list" style="max-height:400px;overflow:auto"></div>
+      <button class="btn-gray" style="width:100%;margin:8px 0" onclick="addEditRow()">➕ 手动增加一题</button>
+      <button class="btn-blue" id="btn-save-questions" style="width:100%" onclick="saveQuestions()">💾 保存当前词单</button>
+      <div class="feedback" id="teacher-feedback"></div>
+    </div>
+  </section>
 
-        function setRole(role) {
-            currentRole = role;
-            document.getElementById('btn-role-student').classList.remove('active');
-            document.getElementById('btn-role-teacher').classList.remove('active');
-            document.getElementById(`btn-role-${role}`).classList.add('active');
-            document.getElementById('student-list-container').style.display = role === 'student' ? 'block' : 'none';
-            document.getElementById('teacher-pass-container').style.display = role === 'teacher' ? 'block' : 'none';
-            document.getElementById('player-name').placeholder = role === 'student' ? "输入学生名字..." : "输入教师名字...";
-        }
+  <section class="card" id="leaderboard-area">
+    <h2 id="board-title" style="text-align:center;color:var(--warning);margin-bottom:12px">👥 挑战者状态</h2>
+    <ul id="rank-list" style="list-style:none"><li class="small">等待玩家加入...</li></ul>
+  </section>
+</div>
 
-        async function fetchCloudData() {
-            try {
-                const res = await fetch(`${API_URL}/latest`, { headers: HEADERS });
-                const json = await res.json();
-                let record = json.record;
+<script>
+const JSONBIN_KEY = "$2a$10$DCXVGO/cu6LJhWXN65Ylb.iDRAKebWx4jcaTm6yyikEkMJChyxovW";
+const JSONBIN_BIN_ID = "6ae2c0feac6210605a5ade70";
+const API_URL = `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`;
+const HEADERS = {"Content-Type":"application/json","X-Master-Key":JSONBIN_KEY};
+const TEACHER_PASSWORD = "alevelchinese";
 
-                if (!record || typeof record !== 'object' || Array.isArray(record)) record = {};
-                cloudData = record;
-                if (!cloudData.lists || typeof cloudData.lists !== 'object' || Array.isArray(cloudData.lists)) cloudData.lists = {};
-                
-                allLists = cloudData.lists; 
-                return true;
-            } catch (e) { return false; }
-        }
+let currentRole="student", studentMode="practice", currentPlayingListId="", vocabulary=[], currentIndex=0, score=0, isAnswered=false, playerName="", playerId="player_"+(crypto.randomUUID?crypto.randomUUID():Math.random().toString(36).slice(2)), cloudData={}, allLists={}, currentTeacherListId="", selectedListIdForUI="";
 
-        window.onload = async () => {
-            await fetchCloudData();
-            updateStudentDropdown();
-        }
+function setRole(role){
+  currentRole=role;
+  document.getElementById("btn-role-student").classList.toggle("active",role==="student");
+  document.getElementById("btn-role-teacher").classList.toggle("active",role==="teacher");
+  document.getElementById("student-controls").style.display=role==="student"?"block":"none";
+  document.getElementById("teacher-pass-container").style.display=role==="teacher"?"block":"none";
+  document.getElementById("player-name").placeholder=role==="student"?"输入学生名字...":"输入教师名字...";
+  if(role==="student") updateStudentDropdown();
+}
+function setStudentMode(mode){
+  studentMode=mode;
+  document.getElementById("btn-mode-practice").classList.toggle("active",mode==="practice");
+  document.getElementById("btn-mode-exam").classList.toggle("active",mode==="exam");
+  updateStudentDropdown();
+}
 
-        function updateStudentDropdown() {
-            const select = document.getElementById('student-list-select');
-            select.innerHTML = "";
-            const listIds = Object.keys(allLists);
-            
-            if (listIds.length === 0) {
-                select.innerHTML = "<option value=''>暂无词单（等老师创建）</option>";
-                return;
-            }
-            listIds.forEach(id => {
-                const option = document.createElement('option');
-                option.value = id;
-                option.textContent = allLists[id].name;
-                select.appendChild(option);
-            });
-        }
+async function fetchCloudData(){
+  const res=await fetch(`${API_URL}/latest`,{headers:HEADERS,cache:"no-store"});
+  if(!res.ok) throw new Error(`网络失败 (${res.status})`);
+  const json=await res.json();
+  cloudData=json.record||{};
+  if(!cloudData.lists || typeof cloudData.lists!=="object") cloudData.lists={};
+  if(!Array.isArray(cloudData.history)) cloudData.history=[];
+  if(!cloudData.players || typeof cloudData.players!=="object") cloudData.players={};
+  allLists=cloudData.lists;
+  return true;
+}
+async function pushToCloud(data){
+  const res=await fetch(API_URL,{method:"PUT",headers:HEADERS,body:JSON.stringify(data)});
+  if(!res.ok) throw new Error(`保存失败 (${res.status})`);
+  return await res.json();
+}
+function showFeedback(id,text,cls="correct"){
+  const el=document.getElementById(id);if(!el)return;el.textContent=text;el.className="feedback "+cls;
+}
 
-        async function login() {
-            let name = document.getElementById('player-name').value.trim();
-            if (name === '') { alert("请输入名字！"); return; }
-            
-            if (currentRole === 'teacher') {
-                let pass = document.getElementById('teacher-password').value;
-                if (pass !== TEACHER_PASSWORD) { alert("密码错误！"); return; }
-            }
+function updateStudentDropdown(){
+  const gradeSelect = document.getElementById("student-grade-select");
+  const select=document.getElementById("student-list-select");
+  if(!select)return;
+  
+  const selectedGrade = gradeSelect.value;
+  select.innerHTML="";
+  
+  if (!selectedGrade) {
+    select.add(new Option("请先选择年级以加载词单", ""));
+    return;
+  }
 
-            playerName = name;
-            document.getElementById('login-area').style.display = 'none';
+  const valid=Object.keys(allLists).filter(id => {
+    const list = allLists[id];
+    return list.grade === selectedGrade && (studentMode==="practice" || list.examOpen===true);
+  });
 
-            if (currentRole === 'teacher') {
-                document.getElementById('teacher-area').style.display = 'block';
-                await fetchCloudData();
-                renderTeacherLobby();
-            } else {
-                const selectedListId = document.getElementById('student-list-select').value;
-                if (!selectedListId) { alert("请选择词单！"); return; }
-                
-                document.getElementById('quiz-area').style.display = 'block';
-                vocabulary = allLists[selectedListId].words || [];
-                
-                if (vocabulary.length === 0) {
-                    document.getElementById('question-text').textContent = "这个词单里还没有单词哦...";
-                    return;
-                }
-                document.getElementById('question-text').textContent = vocabulary[0].cn;
-                document.getElementById('answer-input').focus();
-                updateCloudStatus("答题中...", false, selectedListId);
-            }
-        }
+  if(!valid.length){
+    select.add(new Option(studentMode==="practice" ? "该年级暂无词单" : "该年级暂无开放的测验", ""));
+    return;
+  }
+  
+  valid.forEach(id=>select.add(new Option(allLists[id].name||id,id)));
+}
 
-        // ================= 教师端大厅逻辑 =================
+window.addEventListener("load", async () => {
+  try { await fetchCloudData(); updateStudentDropdown(); } catch(e) { showFeedback("login-feedback", "❌ "+e.message, "wrong"); }
+});
 
-        function renderTeacherLobby() {
-            document.getElementById('teacher-lobby').style.display = 'block';
-            document.getElementById('teacher-editor').style.display = 'none';
-            
-            const container = document.getElementById('teacher-list-container');
-            container.innerHTML = "";
-            const listIds = Object.keys(allLists);
-            
-            if (listIds.length === 0) {
-                container.innerHTML = "<div style='padding: 20px; text-align: center; color: #888;'>暂无词单</div>";
-                selectedListIdForUI = "";
-                return;
-            }
+async function login(){
+  const name=document.getElementById("player-name").value.trim();
+  if(!name){alert("请输入名字！");return}
+  
+  if(currentRole==="teacher"){
+    if(document.getElementById("teacher-password").value!==TEACHER_PASSWORD){alert("教师密码错误！");return}
+    try{await fetchCloudData();playerName=name;document.getElementById("login-area").style.display="none";document.getElementById("teacher-area").style.display="block";document.getElementById("leaderboard-area").style.display="block";renderTeacherLobby();return}
+    catch(e){showFeedback("login-feedback","❌ "+e.message,"wrong");return}
+  }
+  
+  try{await fetchCloudData()}catch(e){showFeedback("login-feedback","❌ "+e.message,"wrong");return}
+  const listId=document.getElementById("student-list-select").value;
+  if(!listId||!allLists[listId]){alert("请选择有效词单！");return}
+  
+  playerName=name;currentPlayingListId=listId;vocabulary=Array.isArray(allLists[listId].words)?allLists[listId].words:[];
+  if(!vocabulary.length){alert("这个词单里还没有单词。");return}
+  currentIndex=0;score=0;isAnswered=false;
+  document.getElementById("login-area").style.display="none";document.getElementById("quiz-area").style.display="block";
+  document.getElementById("quiz-mode-label").textContent=studentMode==="exam"?"✍️ 统一测验模式":"📖 自由练习模式";
+  document.getElementById("quiz-list-name").textContent=allLists[listId].name||"";
+  document.getElementById("question-text").textContent=vocabulary[0].cn||"";
+  document.getElementById("answer-input").focus();
+  document.getElementById("leaderboard-area").style.display=studentMode==="exam"?"block":"none";
+  if(studentMode==="exam"){await updateCloudStatus("答题中 (1/"+vocabulary.length+")",false,listId)}
+}
 
-            listIds.forEach(id => {
-                const div = document.createElement('div');
-                div.className = 'list-item';
-                if (id === selectedListIdForUI) div.classList.add('active');
-                div.textContent = allLists[id].name;
-                div.onclick = () => {
-                    selectedListIdForUI = id;
-                    renderTeacherLobby(); // 重新渲染以更新高亮
-                };
-                container.appendChild(div);
-            });
-        }
+function renderTeacherLobby(){
+  document.getElementById("teacher-lobby").classList.remove("hidden");document.getElementById("teacher-editor").classList.add("hidden");
+  const container=document.getElementById("teacher-list-container");container.innerHTML="";
+  const ids=Object.keys(allLists||{});
+  if(!ids.length){container.innerHTML='<div class="small" style="padding:18px;text-align:center">暂无词单，请创建一个词单。</div>';selectedListIdForUI="";updateExamButton();return}
+  if(!selectedListIdForUI||!allLists[selectedListIdForUI])selectedListIdForUI=ids[0];
+  ids.forEach(id=>{
+    const div=document.createElement("div");div.className="list-item"+(id===selectedListIdForUI?" active":"");
+    const left=document.createElement("span");
+    const gradeTag = allLists[id].grade ? `<span class="tag">${allLists[id].grade}</span>` : '';
+    left.innerHTML = (allLists[id].examOpen?"🟢 ":"⚪ ") + gradeTag + (allLists[id].name||id);
+    const right=document.createElement("span");right.className="small";right.textContent=(allLists[id].words||[]).length+" 题";
+    div.append(left,right);div.onclick=()=>{selectedListIdForUI=id;renderTeacherLobby();renderLeaderboard()};container.appendChild(div);
+  });
+  updateExamButton();renderLeaderboard();
+}
 
-        async function createNewList() {
-            let name = document.getElementById('new-list-name').value.trim();
-            if (!name) { alert("请输入词单名字！"); return; }
+function updateExamButton(){
+  const btn=document.getElementById("btn-exam-toggle"),open=!!(selectedListIdForUI&&allLists[selectedListIdForUI]&&allLists[selectedListIdForUI].examOpen);
+  btn.textContent=open?"🛑 关闭该测验":"🚀 开放该单元作为测验";btn.className=open?"btn-red":"btn-orange";
+}
 
-            const btn = document.getElementById('btn-create-list');
-            btn.textContent = "保存中...";
-            btn.disabled = true; 
+async function toggleExamState(){
+  if(!selectedListIdForUI){alert("请先选择词单！");return}
+  try{await fetchCloudData();if(!cloudData.lists[selectedListIdForUI])throw new Error("词单已不存在，请刷新。");
+    cloudData.lists[selectedListIdForUI].examOpen=!cloudData.lists[selectedListIdForUI].examOpen;
+    await pushToCloud(cloudData);allLists=cloudData.lists;renderTeacherLobby();updateStudentDropdown();
+    showFeedback("lobby-feedback",allLists[selectedListIdForUI].examOpen?"✅ 测验已开放":"✅ 测验已关闭");
+  }catch(e){showFeedback("lobby-feedback","❌ "+e.message,"wrong")}
+}
 
-            await fetchCloudData();
-            
-            const id = "list_" + Date.now();
-            cloudData.lists[id] = { name: name, words: [] };
-            
-            try {
-                await pushToCloud(cloudData);
-                
-                document.getElementById('new-list-name').value = '';
-                document.getElementById('lobby-feedback').textContent = `✅ 成功创建词单：${name}`;
-                document.getElementById('lobby-feedback').className = "feedback correct";
-                
-                allLists = cloudData.lists;
-                selectedListIdForUI = id; 
-                renderTeacherLobby(); 
-                updateStudentDropdown();
-            } catch (e) {
-                alert("网络错误，创建失败。请检查你的 JSONBIN_KEY！");
-            }
+async function createNewList(){
+  const grade=document.getElementById("new-list-grade").value;
+  const name=document.getElementById("new-list-name").value.trim();
+  if(!grade){alert("请选择年级！");return}
+  if(!name){alert("请输入词单名字！");return}
+  const btn=document.getElementById("btn-create-list");btn.disabled=true;
+  try{await fetchCloudData();const id="list_"+Date.now();cloudData.lists[id]={name,grade,words:[],examOpen:false};await pushToCloud(cloudData);allLists=cloudData.lists;selectedListIdForUI=id;document.getElementById("new-list-name").value="";document.getElementById("new-list-grade").value="";renderTeacherLobby();updateStudentDropdown();showFeedback("lobby-feedback","✅ 成功创建词单："+name)}
+  catch(e){showFeedback("lobby-feedback","❌ "+e.message,"wrong")}
+  finally{btn.disabled=false}
+}
 
-            btn.textContent = "➕ 创建新词单";
-            btn.disabled = false;
-        }
+async function renameList(){
+  if(!selectedListIdForUI)return alert("请先选择词单");
+  const old=allLists[selectedListIdForUI].name||"",name=prompt("请输入新的词单名字：",old);
+  if(name===null||!name.trim()||name.trim()===old)return;
+  try{await fetchCloudData();cloudData.lists[selectedListIdForUI].name=name.trim();await pushToCloud(cloudData);allLists=cloudData.lists;renderTeacherLobby();updateStudentDropdown();showFeedback("lobby-feedback","✅ 已重命名")}
+  catch(e){showFeedback("lobby-feedback","❌ "+e.message,"wrong")}
+}
 
-        async function renameList() {
-            if (!selectedListIdForUI) { alert("请先在列表中点击选择一个词单！"); return; }
+async function deleteList(){
+  if(!selectedListIdForUI)return alert("请先选择词单");
+  const name=allLists[selectedListIdForUI].name||"该词单";
+  if(!confirm(`确定删除「${name}」及其中的单词吗？此操作不可恢复。`))return;
+  try{await fetchCloudData();delete cloudData.lists[selectedListIdForUI];delete cloudData.players?.[selectedListIdForUI];await pushToCloud(cloudData);allLists=cloudData.lists;selectedListIdForUI="";renderTeacherLobby();updateStudentDropdown();showFeedback("lobby-feedback","🗑️ 词单已删除","skip")}
+  catch(e){showFeedback("lobby-feedback","❌ "+e.message,"wrong")}
+}
 
-            const oldName = allLists[selectedListIdForUI].name;
-            const newName = prompt(`请输入新的词单名字（原名字：${oldName}）：`, oldName);
-            
-            if (newName && newName.trim() !== "" && newName !== oldName) {
-                await fetchCloudData();
-                cloudData.lists[selectedListIdForUI].name = newName.trim();
-                await pushToCloud(cloudData);
-                
-                document.getElementById('lobby-feedback').textContent = `✅ 词单已重命名为：${newName}`;
-                document.getElementById('lobby-feedback').className = "feedback correct";
-                
-                allLists = cloudData.lists;
-                renderTeacherLobby();
-                updateStudentDropdown();
-            }
-        }
+function enterList(){
+  if(!selectedListIdForUI)return alert("请先选择词单");
+  currentTeacherListId=selectedListIdForUI;document.getElementById("teacher-lobby").classList.add("hidden");document.getElementById("teacher-editor").classList.remove("hidden");
+  document.getElementById("current-list-title").textContent=allLists[currentTeacherListId].name||"词单编辑";
+  const cont=document.getElementById("editor-list");cont.innerHTML="";
+  (allLists[currentTeacherListId].words||[]).forEach(q=>addEditRow(q.cn||"",Array.isArray(q.en)?q.en.join(" / "):(q.en||"")));
+  if(!cont.children.length)addEditRow();showFeedback("teacher-feedback","");
+}
 
-        async function deleteList() {
-            if (!selectedListIdForUI) { alert("请先在列表中点击选择一个词单！"); return; }
+function backToLobby(){document.getElementById("teacher-lobby").classList.remove("hidden");document.getElementById("teacher-editor").classList.add("hidden");renderTeacherLobby()}
 
-            const listName = allLists[selectedListIdForUI].name;
-            const confirmDelete = confirm(`⚠️ 警告：你确定要彻底删除词单【${listName}】吗？\n里面的所有单词也会被清空，且无法恢复！`);
-            
-            if (confirmDelete) {
-                await fetchCloudData();
-                delete cloudData.lists[selectedListIdForUI];
-                
-                if (cloudData.players && cloudData.players[selectedListIdForUI]) {
-                    delete cloudData.players[selectedListIdForUI];
-                }
-                
-                await pushToCloud(cloudData);
-                
-                document.getElementById('lobby-feedback').textContent = `🗑️ 词单已删除。`;
-                document.getElementById('lobby-feedback').className = "feedback skip";
-                
-                allLists = cloudData.lists;
-                selectedListIdForUI = ""; // 清空选中
-                renderTeacherLobby();
-                updateStudentDropdown();
-            }
-        }
+function addEditRow(cn="",en=""){
+  const row=document.createElement("div");row.className="edit-row";
+  const idx=document.createElement("div");idx.className="idx";
+  const c=document.createElement("input");c.className="edit-cn";c.placeholder="中文提示";c.value=cn;
+  const e=document.createElement("input");e.className="edit-en";e.placeholder="英文答案（多个答案用 / 分隔）";e.value=en;
+  const del=document.createElement("button");del.textContent="🗑️";del.title="删除本题";del.onclick=()=>{row.remove();updateIndexes()};
+  row.append(idx,c,e,del);document.getElementById("editor-list").appendChild(row);updateIndexes();
+}
+function updateIndexes(){document.querySelectorAll(".edit-row .idx").forEach((el,i)=>el.textContent=i+1)}
 
-        function enterList() {
-            if (!selectedListIdForUI) { alert("请先在列表中点击选择一个词单！"); return; }
-            
-            currentTeacherListId = selectedListIdForUI;
-            document.getElementById('teacher-lobby').style.display = 'none';
-            document.getElementById('teacher-editor').style.display = 'block';
-            document.getElementById('current-list-title').textContent = allLists[currentTeacherListId].name;
-            
-            // 【关键修复】：点进词单时，立刻把数据库里的单词渲染成输入框
-            const words = allLists[currentTeacherListId].words || [];
-            const listContainer = document.getElementById('editor-list');
-            listContainer.innerHTML = ''; // 先清空
-            words.forEach(q => {
-                let enStr = Array.isArray(q.en) ? q.en.join(" / ") : q.en;
-                addEditRow(q.cn, enStr); // 调用新增行函数
-            });
-            document.getElementById('teacher-feedback').textContent = "";
-        }
+function parseBulk(){
+  const text=document.getElementById("bulk-input").value;if(!text.trim())return;
+  let count=0;
+  text.split(/\r?\n/).forEach(line=>{
+    line=line.trim();if(!line)return;
+    const parts=line.split(/\s*[-—–,\t:|，]\s*/).filter(Boolean);
+    if(parts.length<2)return;
+    let a=parts[0].trim(),b=parts.slice(1).join(" / ").trim();
+    if(/[\u4e00-\u9fff]/.test(a))addEditRow(a,b);else addEditRow(b,a);
+    count++;
+  });
+  document.getElementById("bulk-input").value="";
+  showFeedback("teacher-feedback",`✅ 已解析并添加 ${count} 题，请点击保存。`,count?"correct":"wrong");
+}
 
-        function backToLobby() {
-            document.getElementById('teacher-lobby').style.display = 'block';
-            document.getElementById('teacher-editor').style.display = 'none';
-            document.getElementById('lobby-feedback').textContent = "";
-            renderTeacherLobby(); // 刷新列表确保状态最新
-        }
+async function saveQuestions(){
+  if(!currentTeacherListId)return;
+  const btn=document.getElementById("btn-save-questions");btn.disabled=true;
+  try{
+    const words=[];
+    document.querySelectorAll(".edit-row").forEach(row=>{
+      const cn=row.querySelector(".edit-cn").value.trim(),en=row.querySelector(".edit-en").value.trim();
+      if(cn&&en)words.push({cn,en:en.split("/").map(s=>s.trim()).filter(Boolean)});
+    });
+    await fetchCloudData();if(!cloudData.lists[currentTeacherListId])throw new Error("词单已不存在，请返回大厅刷新。");
+    cloudData.lists[currentTeacherListId].words=words;if(cloudData.lists[currentTeacherListId].examOpen===undefined)cloudData.lists[currentTeacherListId].examOpen=false;
+    await pushToCloud(cloudData);allLists=cloudData.lists;updateStudentDropdown();showFeedback("teacher-feedback",`✅ 保存成功，共 ${words.length} 题。`);
+  }catch(e){showFeedback("teacher-feedback","❌ "+e.message,"wrong")}
+  finally{btn.disabled=false}
+}
 
-        // ================= 教师端编辑逻辑 =================
+async function toggleRecordBoard(){
+  const board=document.getElementById("record-board");
+  if(board.classList.contains("hidden"))board.classList.remove("hidden");
+  try{await fetchCloudData();renderHistory();showFeedback("lobby-feedback",`✅ 已刷新，云端共有 ${(cloudData.history||[]).length} 条历史记录。`)}
+  catch(e){renderHistory(e.message);showFeedback("lobby-feedback","❌ "+e.message,"wrong")}
+}
 
-        function addEditRow(cn = "", en = "") {
-            const list = document.getElementById('editor-list');
-            const row = document.createElement('div');
-            row.className = 'edit-row';
-            row.innerHTML = `
-                <input type="text" class="edit-cn" placeholder="中文提示" value="${cn}">
-                <input type="text" class="edit-en" placeholder="英文答案" value="${en}">
-                <button class="btn-del" onclick="this.parentElement.remove()">🗑️</button>
-            `;
-            list.appendChild(row);
-        }
+function renderHistory(errorText=""){
+  const tbody=document.getElementById("record-tbody");tbody.innerHTML="";
+  if(errorText){const tr=document.createElement("tr"),td=document.createElement("td");td.colSpan=5;td.textContent=errorText;tr.appendChild(td);tbody.appendChild(tr);return}
+  const history=Array.isArray(cloudData.history)?cloudData.history:[];
+  const records=history.filter(r=>r&&typeof r==="object"&&String(r.name??"").trim()!==""&&r.score!==undefined).slice().reverse();
+  if(!records.length){const tr=document.createElement("tr"),td=document.createElement("td");td.colSpan=5;td.className="small";td.textContent="暂无历史成绩";tr.appendChild(td);tbody.appendChild(tr);return}
+  records.forEach(r=>{
+    const tr=document.createElement("tr");
+    [r.time||"-",r.name||"-",r.grade||"-",r.listName||"-",r.score??"-"].forEach((value,i)=>{const td=document.createElement("td");td.textContent=String(value);if(i===4){td.style.color="var(--primary)";td.style.fontWeight="bold"}tr.appendChild(td)});
+    tbody.appendChild(tr);
+  });
+}
 
-        function parseBulk() {
-            const text = document.getElementById('bulk-input').value;
-            if (!text.trim()) return;
-            const lines = text.split('\n');
-            let parsedCount = 0;
+function exportHistory(){
+  const history=Array.isArray(cloudData.history)?cloudData.history:[];
+  if(!history.length){alert("当前尚无已加载的历史成绩，请先展开/刷新成绩单。");return}
+  const quote=v=>`"${String(v??"").replace(/"/g,'""')}"`;
+  const csv="\uFEFF"+[["交卷时间","学生姓名","年级/班级","测试词单","得分"],...history.map(r=>[r.time,r.name,r.grade,r.listName,r.score])].map(row=>row.map(quote).join(",")).join("\r\n");
+  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8;"}));a.download="历史测验成绩.csv";a.click();URL.revokeObjectURL(a.href);
+}
 
-            lines.forEach(line => {
-                line = line.trim();
-                if (!line) return;
-                let parts = line.split(/[-,\t:|，]/);
-                if (parts.length >= 2) {
-                    let p1 = parts[0].trim();
-                    let p2 = parts[1].trim();
-                    if (/[\u4e00-\u9fa5]/.test(p1)) { addEditRow(p1, p2); } 
-                    else { addEditRow(p2, p1); }
-                    parsedCount++;
-                }
-            });
-            
-            document.getElementById('bulk-input').value = '';
-            document.getElementById('teacher-feedback').textContent = `✅ 成功解析并添加了 ${parsedCount} 道题目，请点击下方保存！`;
-            document.getElementById('teacher-feedback').className = "feedback correct";
-        }
+function checkAnswer(){
+  if(!vocabulary.length)return;
+  if(isAnswered){currentIndex++;if(currentIndex<vocabulary.length)loadNext();else endGame();return}
+  const user=document.getElementById("answer-input").value.trim().toLowerCase();
+  const q=vocabulary[currentIndex];const answers=(Array.isArray(q.en)?q.en:[q.en]).filter(Boolean).map(x=>String(x).trim().toLowerCase());
+  isAnswered=true;document.getElementById("answer-input").disabled=true;document.getElementById("submit-btn").textContent="下一题（回车）";
+  if(!user)showFeedback("feedback-text","⚠️ 已跳过。正确答案："+answers.join(" / "),"skip");
+  else if(answers.includes(user)){score++;showFeedback("feedback-text","✅ 正确！","correct")}
+  else showFeedback("feedback-text","❌ 错误。正确答案："+answers.join(" / "),"wrong");
+  if(studentMode==="exam")updateCloudStatus(`答题中 (${currentIndex+1}/${vocabulary.length})`,false,currentPlayingListId);
+}
 
-        async function saveQuestions() {
-            if (!currentTeacherListId) return;
+function loadNext(){
+  isAnswered=false;document.getElementById("answer-input").value="";document.getElementById("answer-input").disabled=false;document.getElementById("answer-input").focus();
+  document.getElementById("feedback-text").textContent="";document.getElementById("submit-btn").textContent="提交答案（回车）";
+  document.getElementById("question-text").textContent=vocabulary[currentIndex].cn||"";document.getElementById("progress-fill").style.width=(currentIndex/vocabulary.length*100)+"%";
+  if(studentMode==="exam")updateCloudStatus(`答题中 (${currentIndex+1}/${vocabulary.length})`,false,currentPlayingListId);
+}
 
-            const rows = document.querySelectorAll('.edit-row');
-            let newQuestions = [];
-            rows.forEach(row => {
-                let cn = row.querySelector('.edit-cn').value.trim();
-                let enStr = row.querySelector('.edit-en').value.trim();
-                if(cn && enStr) {
-                    let enArray = enStr.split('/').map(item => item.trim()).filter(item => item);
-                    newQuestions.push({ cn: cn, en: enArray });
-                }
-            });
+// 核心修复：交卷防断网，自动重试
+async function endGame(){
+  document.getElementById("quiz-area").style.display="none";
+  document.getElementById("result-area").style.display="block";
+  document.getElementById("my-final-score").textContent=`${score} / ${vocabulary.length}`;
+  if(studentMode!=="exam"){
+    document.getElementById("result-desc").textContent="这是自由练习，成绩不会记录到老师后台。";
+    return;
+  }
+  
+  document.getElementById("result-desc").textContent="正在保存成绩...";
+  
+  let success = false;
+  let retries = 3;
+  
+  while (retries > 0 && !success) {
+    try {
+      await fetchCloudData();
+      cloudData.players=cloudData.players||{};
+      cloudData.players[currentPlayingListId]=cloudData.players[currentPlayingListId]||{};
+      cloudData.players[currentPlayingListId][playerId]={name:playerName,score,status:"已交卷",show:true};
+      const now=new Date(),timeStr=`${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日 ${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
+      
+      const currentList = cloudData.lists[currentPlayingListId] || {};
+      const gradeName = currentList.grade || "未知年级";
+      
+      cloudData.history=Array.isArray(cloudData.history)?cloudData.history:[];
+      cloudData.history.push({time:timeStr,name:playerName,grade:gradeName,listName:currentList.name||"未知词单",score:`${score} / ${vocabulary.length}`,submittedAt:now.toISOString(),listId:currentPlayingListId});
+      
+      await pushToCloud(cloudData);
+      success = true;
+    } catch(e) {
+      console.warn("保存失败，重试中...", e);
+      retries--;
+      if (retries === 0) {
+        document.getElementById("result-desc").textContent="❌ 成绩保存失败：网络连接超时，请截图联系老师。";
+        return;
+      }
+      await new Promise(r => setTimeout(r, 1000)); // 等待1秒后重试
+    }
+  }
 
-            await fetchCloudData(); 
-            cloudData.lists[currentTeacherListId].words = newQuestions;
-            
-            await pushToCloud(cloudData);
-            
-            document.getElementById('teacher-feedback').textContent = "✅ 词单保存成功！";
-            document.getElementById('teacher-feedback').className = "feedback correct";
-            updateStudentDropdown();
-        }
+  if (success) {
+    document.getElementById("result-desc").textContent="✅ 成绩已成功保存，请查看教师端历史成绩单。";
+    renderLeaderboard();
+  }
+}
 
-        async function pushToCloud(data) {
-            await fetch(API_URL, { method: 'PUT', headers: HEADERS, body: JSON.stringify(data) });
-        }
+async function updateCloudStatus(status,showScore,listId){
+  try{await fetchCloudData();cloudData.players=cloudData.players||{};cloudData.players[listId]=cloudData.players[listId]||{};cloudData.players[listId][playerId]={name:playerName,score,status,show:showScore};await pushToCloud(cloudData);renderLeaderboard()}
+  catch(e){console.error("更新答题状态失败：",e)}
+}
 
-        // ================= 学生端答题逻辑 =================
-        function handleBtnClick() { checkAnswer(); }
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && currentRole === 'student' && document.getElementById('quiz-area').style.display === 'block') {
-                e.preventDefault(); checkAnswer();
-            }
-        });
+function renderLeaderboard(){
+  const target=currentRole==="teacher"?selectedListIdForUI:currentPlayingListId;if(!target)return;
+  const list=document.getElementById("rank-list");list.innerHTML="";
+  const players=Object.values((cloudData.players&&cloudData.players[target])||{});
+  if(!players.length){list.innerHTML='<li class="small">等待玩家加入...</li>';return}
+  if(players.every(p=>p.status==="已交卷")){
+    document.getElementById("board-title").textContent="🏆 最终排行榜";
+    players.sort((a,b)=>(Number(b.score)||0)-(Number(a.score)||0));
+    players.forEach((p,i)=>{const li=document.createElement("li");li.style.cssText="display:flex;justify-content:space-between;padding:10px;border-bottom:1px solid #333";const name=document.createElement("span");name.textContent=(i===0?"🥇":i===1?"🥈":i===2?"🥉":`${i+1}.`)+" "+p.name;const s=document.createElement("span");s.style.color="var(--primary)";s.textContent=p.score+"分";li.append(name,s);list.appendChild(li)});
+  }else{
+    document.getElementById("board-title").textContent="👥 挑战者状态";
+    players.forEach(p=>{const li=document.createElement("li");li.style.cssText="display:flex;justify-content:space-between;padding:10px;border-bottom:1px solid #333";const n=document.createElement("span");n.textContent=p.name||"学生";const s=document.createElement("span");s.className="small";s.textContent=p.status||"等待中";li.append(n,s);list.appendChild(li)});
+  }
+}
 
-        function checkAnswer() {
-            if (isAnswered) {
-                currentIndex++;
-                if(currentIndex < vocabulary.length) { loadNext(); } else { endGame(); }
-                return;
-            }
-            const userAnswer = document.getElementById('answer-input').value.trim().toLowerCase();
-            const correctAnswers = vocabulary[currentIndex].en.map(a => a.toLowerCase());
-            const submitBtn = document.getElementById('submit-btn');
-
-            isAnswered = true;
-            document.getElementById('answer-input').disabled = true;
-            submitBtn.textContent = '下一题 (回车)';
-            let fb = document.getElementById('feedback-text');
-
-            if (userAnswer === '') {
-                fb.innerHTML = `⚠️ 跳过。正确答案：<br><span style="color: #fff">${vocabulary[currentIndex].en.join(' / ')}</span>`;
-                fb.className = "feedback skip";
-            } else if (correctAnswers.includes(userAnswer)) {
-                score++;
-                fb.innerHTML = "✅ 正确！";
-                fb.className = "feedback correct";
-            } else {
-                fb.innerHTML = `❌ 错误。正确答案：<br><span style="color: #fff">${vocabulary[currentIndex].en.join(' / ')}</span>`;
-                fb.className = "feedback wrong";
-            }
-        }
-
-        function loadNext() {
-            isAnswered = false;
-            document.getElementById('answer-input').value = '';
-            document.getElementById('answer-input').disabled = false;
-            document.getElementById('answer-input').focus();
-            document.getElementById('feedback-text').textContent = '';
-            document.getElementById('submit-btn').textContent = '提交答案 (回车)';
-            document.getElementById('question-text').textContent = vocabulary[currentIndex].cn;
-            document.getElementById('progress-fill').style.width = `${(currentIndex / vocabulary.length) * 100}%`;
-        }
-
-        function endGame() {
-            document.getElementById('quiz-area').style.display = 'none';
-            document.getElementById('result-area').style.display = 'block';
-            document.getElementById('my-final-score').textContent = `${score} / ${vocabulary.length}`;
-            const selectedListId = document.getElementById('student-list-select').value;
-            updateCloudStatus("已交卷", true, selectedListId);
-        }
-
-        // ================= 排行榜交互 =================
-        async function updateCloudStatus(statusText, showScore, listId) {
-            try {
-                await fetchCloudData();
-                cloudData.players = cloudData.players || {};
-                cloudData.players[listId] = cloudData.players[listId] || {};
-                cloudData.players[listId][playerId] = { name: playerName, score: score, status: statusText, show: showScore };
-                await pushToCloud(cloudData);
-                renderLeaderboard();
-            } catch (e) {}
-        }
-
-        function renderLeaderboard() {
-            const list = document.getElementById('rank-list');
-            if (!list) return;
-            list.innerHTML = '';
-            
-            const selectedListId = document.getElementById('student-list-select').value;
-            const playersDict = (cloudData.players && cloudData.players[selectedListId]) ? cloudData.players[selectedListId] : {};
-            let players = Object.values(playersDict);
-
-            if (players.length === 0) {
-                list.innerHTML = '<li><span>等待玩家加入...</span></li>';
-                return;
-            }
-
-            const allFinished = players.every(p => p.status === "已交卷");
-            if (allFinished) {
-                document.getElementById('board-title').textContent = "🏆 最终排行榜";
-                players.sort((a, b) => b.score - a.score);
-                players.forEach((p, index) => {
-                    const li = document.createElement('li');
-                    let medal = index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : `${index + 1}.`;
-                    li.innerHTML = `<span>${medal} ${p.name}</span> <span class="rank-score">${p.score}分</span>`;
-                    list.appendChild(li);
-                });
-            } else {
-                document.getElementById('board-title').textContent = "👥 挑战者状态";
-                players.forEach(p => {
-                    const li = document.createElement('li');
-                    li.innerHTML = `<span>${p.name}</span> <span style="color:#888;">${p.status}</span>`;
-                    list.appendChild(li);
-                });
-            }
-        }
-
-        setInterval(async () => {
-            if (!playerName || currentRole === 'teacher') return;
-            try {
-                const res = await fetch(`${API_URL}/latest`, { headers: HEADERS });
-                const json = await res.json();
-                if(json.record) {
-                    cloudData = json.record;
-                    renderLeaderboard();
-                }
-            } catch (e) {}
-        }, 3000);
-    </script>
+document.addEventListener("keydown",e=>{
+  if(e.key!=="Enter")return;
+  if(document.getElementById("login-area").style.display!=="none"){if(e.target.tagName==="TEXTAREA")return;e.preventDefault();login()}
+  else if(currentRole==="student"&&document.getElementById("quiz-area").style.display==="block"){e.preventDefault();checkAnswer()}
+});
+</script>
 </body>
 </html>
