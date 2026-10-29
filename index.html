@@ -361,7 +361,7 @@
 
             const btn = document.getElementById('btn-create-list');
             btn.textContent = "保存中...";
-            btn.disabled = true; // 锁死按钮，绝对防止连点覆盖
+            btn.disabled = true; 
 
             await fetchCloudData();
             
@@ -376,7 +376,7 @@
                 document.getElementById('lobby-feedback').className = "feedback correct";
                 
                 allLists = cloudData.lists;
-                selectedListIdForUI = id; // 自动选中刚建好的
+                selectedListIdForUI = id; 
                 renderTeacherLobby(); 
                 updateStudentDropdown();
             } catch (e) {
@@ -441,11 +441,13 @@
             document.getElementById('teacher-editor').style.display = 'block';
             document.getElementById('current-list-title').textContent = allLists[currentTeacherListId].name;
             
+            // 【关键修复】：点进词单时，立刻把数据库里的单词渲染成输入框
             const words = allLists[currentTeacherListId].words || [];
-            document.getElementById('editor-list').innerHTML = '';
+            const listContainer = document.getElementById('editor-list');
+            listContainer.innerHTML = ''; // 先清空
             words.forEach(q => {
                 let enStr = Array.isArray(q.en) ? q.en.join(" / ") : q.en;
-                addEditRow(q.cn, enStr);
+                addEditRow(q.cn, enStr); // 调用新增行函数
             });
             document.getElementById('teacher-feedback').textContent = "";
         }
@@ -459,7 +461,6 @@
 
         // ================= 教师端编辑逻辑 =================
 
-        // 核心修复：修改 addEditRow 让其返回创建的 DOM，以便我们后续控制
         function addEditRow(cn = "", en = "") {
             const list = document.getElementById('editor-list');
             const row = document.createElement('div');
@@ -470,7 +471,6 @@
                 <button class="btn-del" onclick="this.parentElement.remove()">🗑️</button>
             `;
             list.appendChild(row);
-            return row; // 返回这一行
         }
 
         function parseBulk() {
@@ -486,13 +486,8 @@
                 if (parts.length >= 2) {
                     let p1 = parts[0].trim();
                     let p2 = parts[1].trim();
-                    
-                    // 智能判断中英文
-                    if (/[\u4e00-\u9fa5]/.test(p1)) { 
-                        addEditRow(p1, p2); 
-                    } else { 
-                        addEditRow(p2, p1); 
-                    }
+                    if (/[\u4e00-\u9fa5]/.test(p1)) { addEditRow(p1, p2); } 
+                    else { addEditRow(p2, p1); }
                     parsedCount++;
                 }
             });
