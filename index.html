@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>在线默写系统</title>
+<title>在线默写系统（终极完美版）</title>
 <style>
 :root{--bg:#121212;--card:#1e1e1e;--text:#e0e0e0;--primary:#00ccff;--error:#f44336;--warning:#ff9800;--border:#333;--teacher:#0071e3}
 *{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
@@ -21,7 +21,7 @@ button:hover{filter:brightness(1.08)}button:disabled{opacity:.55;cursor:not-allo
 #quiz-area,#result-area,#teacher-area,#leaderboard-area{display:none}
 .question{font-size:23px;font-weight:700;text-align:center;color:white;margin:20px 0}
 .progress{height:6px;background:#333;border-radius:4px;overflow:hidden}.progress-fill{height:100%;width:0;background:var(--primary);transition:width .2s}
-.feedback{text-align:center;min-height:24px;line-height:1.5;margin-top:14px;font-weight:700}.correct{color:#00ccff}.wrong{color:var(--error)}.skip{color:var(--warning)}
+.feedback{text-align:center;min-height:24px;line-height:1.5;margin-top:14px;font-weight:700}.correct{color:var(--primary)}.wrong{color:var(--error)}.skip{color:var(--warning)}
 .result{text-align:center}.score{font-size:48px;font-weight:800;color:var(--primary);margin:18px 0}
 .teacher-header,.editor-header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}.teacher-header h2,.editor-title{color:var(--teacher)}
 .lobby-box{background:#252525;padding:18px;border-radius:10px;margin-bottom:16px}.lobby-box h3{margin-bottom:12px;color:#fff;font-size:16px}
@@ -34,13 +34,31 @@ textarea{min-height:115px;resize:vertical;line-height:1.5}
 .bulk-area{border:1px solid var(--teacher);padding:14px;border-radius:8px;margin-bottom:16px}.bulk-area h3{color:#6db5ff;margin-bottom:8px}
 table{width:100%;border-collapse:collapse;font-size:14px;margin-top:12px}th,td{border:1px solid #383838;padding:9px;text-align:center;overflow-wrap:anywhere}th{background:#333;color:var(--primary)}tr:nth-child(even){background:#252525}
 .small{font-size:13px;color:#999;line-height:1.5}.hidden{display:none!important}
-.tag { font-size: 12px; background: #0071e3; color: white; padding: 2px 6px; border-radius: 4px; margin-right: 6px; }
+.tag { font-size: 12px; background: #0071e3; color: white; padding: 2px 6px; border-radius: 4px; margin-right: 4px; display: inline-block; margin-bottom: 2px; }
+.tag-class { background: var(--warning); color: #000; }
+
+.grade-checkbox-group { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.grade-checkbox { padding: 8px 12px; border-radius: 6px; background: #333; border: 1px solid #555; color: #aaa; cursor: pointer; font-size: 14px; user-select: none; transition: 0.2s; }
+.grade-checkbox:hover { background: #444; }
+.grade-checkbox.selected { background: var(--primary); color: #000; border-color: var(--primary); font-weight: bold; }
+
+.class-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.class-item { background: #333; padding: 6px 12px; border-radius: 20px; font-size: 14px; display: flex; align-items: center; gap: 8px; border: 1px solid #555; }
+.class-item button { background: transparent; color: var(--error); font-size: 16px; padding: 0; border: none; cursor: pointer; line-height: 1; }
+.class-item button:hover { color: #ff7777; }
+
+.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; z-index: 1000; }
+.modal-content { background: var(--card); padding: 24px; border-radius: 12px; width: 90%; max-width: 400px; border: 1px solid var(--border); box-shadow: 0 10px 30px rgba(0,0,0,0.5); max-height: 80vh; overflow-y: auto; }
+.modal-content h3 { margin-bottom: 16px; color: #fff; }
+.modal-btns { display: flex; gap: 10px; margin-top: 20px; }
+.modal-btns button { flex: 1; }
+
 @media(max-width:520px){body{padding:12px}.card{padding:17px}.edit-row{flex-wrap:wrap}.edit-row .idx{width:20px}.edit-cn,.edit-en{flex:1 1 38%}.teacher-header{align-items:flex-start}.btn-row{flex-wrap:wrap}.btn-row>*{min-width:80px}}
 </style>
 </head>
 <body>
 <h1>在线默写系统</h1>
-<div class="subtitle">支持多年级/班级词单 · 师生互动</div>
+<div class="subtitle">多年级与班级管理 · 师生互动</div>
 <div class="layout">
   <section class="card login" id="login-area">
     <h2>请选择身份登入</h2>
@@ -51,7 +69,7 @@ table{width:100%;border-collapse:collapse;font-size:14px;margin-top:12px}th,td{b
     <input id="player-name" placeholder="输入名字..." autocomplete="off">
     
     <div id="student-controls">
-      <select id="student-grade-select" onchange="updateStudentDropdown()">
+      <select id="student-grade-select" onchange="updateStudentClassDropdown()">
         <option value="">请选择你的年级...</option>
         <option value="Grade 7">Grade 7</option>
         <option value="Grade 8">Grade 8</option>
@@ -60,12 +78,16 @@ table{width:100%;border-collapse:collapse;font-size:14px;margin-top:12px}th,td{b
         <option value="Grade 11">Grade 11</option>
         <option value="Grade 12">Grade 12</option>
       </select>
+
+      <select id="student-class-select" onchange="updateStudentDropdown()">
+        <option value="">请先选择年级...</option>
+      </select>
       
       <div class="mode" style="margin-bottom:14px">
         <button id="btn-mode-practice" class="active" onclick="setStudentMode('practice')">📖 自由练习</button>
         <button id="btn-mode-exam" onclick="setStudentMode('exam')">✍️ 参加测验</button>
       </div>
-      <select id="student-list-select"><option value="">先选择年级以加载词单</option></select>
+      <select id="student-list-select"><option value="">先选择年级/班级以加载词单</option></select>
     </div>
     
     <div id="teacher-pass-container"><input type="password" id="teacher-password" placeholder="请输入教师密码..."></div>
@@ -91,39 +113,57 @@ table{width:100%;border-collapse:collapse;font-size:14px;margin-top:12px}th,td{b
   <section class="card" id="teacher-area">
     <div class="teacher-header"><h2>👩‍🏫 教师控制台</h2><button class="btn-gray" onclick="location.reload()">退出</button></div>
     <div id="teacher-lobby">
+      
+      <div class="lobby-box">
+        <h3>🏫 班级管理</h3>
+        <div class="row" style="margin-bottom:10px;">
+          <!-- 增加了 onkeydown 回车事件 -->
+          <input id="new-class-name" placeholder="输入班级名 (回车添加)" style="margin-bottom:0; flex:1;" onkeydown="if(event.key === 'Enter') addNewClass()">
+          <button class="btn-blue" onclick="addNewClass()" style="width:80px;">添加</button>
+        </div>
+        <div class="class-list" id="class-manage-list"></div>
+      </div>
+
       <div class="lobby-box">
         <h3>管理词单与考试</h3>
         <div class="list-container" id="teacher-list-container"></div>
-        <div class="btn-row">
-          <button class="btn-blue" onclick="enterList()">进入编辑单词</button>
+        <div class="btn-row" style="flex-wrap:wrap">
+          <button class="btn-blue" onclick="enterList()">进入编辑</button>
           <button class="btn-gray" onclick="renameList()">✏️ 重命名</button>
+          <button class="btn-gray" onclick="openModifyGradeModal()">🏷️ 修改适用群体</button>
           <button class="btn-red" onclick="deleteList()">🗑️ 删除</button>
         </div>
-        <button id="btn-exam-toggle" class="btn-orange" style="width:100%" onclick="toggleExamState()">开放该单元作为测验</button>
+        <button id="btn-exam-toggle" class="btn-orange" style="width:100%; margin-top:10px;" onclick="toggleExamState()">开放该单元作为测验</button>
       </div>
+      
       <div class="lobby-box">
         <h3>创建新词单</h3>
-        <select id="new-list-grade" style="margin-bottom:8px;">
-          <option value="">选择年级...</option>
-          <option value="Grade 7">Grade 7</option>
-          <option value="Grade 8">Grade 8</option>
-          <option value="Grade 9">Grade 9</option>
-          <option value="Grade 10">Grade 10</option>
-          <option value="Grade 11">Grade 11</option>
-          <option value="Grade 12">Grade 12</option>
+        <p class="small" style="margin-bottom:8px; color:#aaa;">勾选适用年级：</p>
+        <div class="grade-checkbox-group" id="new-list-grades">
+          <div class="grade-checkbox" data-grade="Grade 7" onclick="toggleGrade(this)">Grade 7</div>
+          <div class="grade-checkbox" data-grade="Grade 8" onclick="toggleGrade(this)">Grade 8</div>
+          <div class="grade-checkbox" data-grade="Grade 9" onclick="toggleGrade(this)">Grade 9</div>
+          <div class="grade-checkbox" data-grade="Grade 10" onclick="toggleGrade(this)">Grade 10</div>
+          <div class="grade-checkbox" data-grade="Grade 11" onclick="toggleGrade(this)">Grade 11</div>
+          <div class="grade-checkbox" data-grade="Grade 12" onclick="toggleGrade(this)">Grade 12</div>
+        </div>
+        <select id="new-list-class" style="margin-bottom:8px;">
+          <option value="">不限制班级（全年级通用）</option>
         </select>
         <input id="new-list-name" placeholder="输入词单名（如：Unit 1）" style="margin-bottom:8px;">
         <button id="btn-create-list" style="width:100%" onclick="createNewList()">➕ 创建新词单</button>
       </div>
+      
       <div class="lobby-box">
         <h3>历史测验成绩单</h3>
         <div class="btn-row"><button onclick="toggleRecordBoard()">📊 展开 / 刷新成绩单</button><button class="btn-gray" onclick="exportHistory()">导出 CSV</button></div>
         <div id="record-board" class="hidden" style="max-height:320px;overflow:auto">
-          <table><thead><tr><th>交卷时间</th><th>学生姓名</th><th>年级</th><th>测试词单</th><th>得分</th></tr></thead><tbody id="record-tbody"></tbody></table>
+          <table><thead><tr><th>交卷时间</th><th>学生姓名</th><th>所属群体</th><th>测试词单</th><th>得分</th></tr></thead><tbody id="record-tbody"></tbody></table>
         </div>
       </div>
       <div class="feedback" id="lobby-feedback"></div>
     </div>
+    
     <div id="teacher-editor" class="hidden">
       <div class="editor-header"><div class="editor-title" id="current-list-title">词单编辑</div><button class="btn-gray" onclick="backToLobby()">↩ 返回大厅</button></div>
       <div class="bulk-area"><h3>📋 批量粘贴区</h3><textarea id="bulk-input" placeholder="每行一个词条，例如：苹果 - apple"></textarea><button class="btn-blue" style="width:100%;margin-top:8px" onclick="parseBulk()">⚡ 智能解析并追加</button></div>
@@ -140,6 +180,32 @@ table{width:100%;border-collapse:collapse;font-size:14px;margin-top:12px}th,td{b
   </section>
 </div>
 
+<div class="modal-overlay" id="grade-modal">
+  <div class="modal-content">
+    <h3>修改适用群体</h3>
+    <p class="small" style="margin-bottom:12px; color:#aaa;">勾选年级标签（多选）：</p>
+    <div class="grade-checkbox-group" id="modal-grade-checkboxes">
+      <div class="grade-checkbox" data-grade="Grade 7" onclick="toggleGrade(this)">Grade 7</div>
+      <div class="grade-checkbox" data-grade="Grade 8" onclick="toggleGrade(this)">Grade 8</div>
+      <div class="grade-checkbox" data-grade="Grade 9" onclick="toggleGrade(this)">Grade 9</div>
+      <div class="grade-checkbox" data-grade="Grade 10" onclick="toggleGrade(this)">Grade 10</div>
+      <div class="grade-checkbox" data-grade="Grade 11" onclick="toggleGrade(this)">Grade 11</div>
+      <div class="grade-checkbox" data-grade="Grade 12" onclick="toggleGrade(this)">Grade 12</div>
+    </div>
+    <p class="small" style="margin-bottom:12px; color:#aaa;">选择班级：</p>
+    <select id="modal-class-select" style="margin-bottom:12px;">
+      <option value="">不限制班级（全年级通用）</option>
+    </select>
+    
+    <div class="feedback" id="modal-feedback"></div>
+
+    <div class="modal-btns">
+      <button class="btn-gray" onclick="closeModal()">取消</button>
+      <button class="btn-blue" id="btn-save-grade" onclick="saveGradeModifications()">保存</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const JSONBIN_KEY = "$2a$10$DCXVGO/cu6LJhWXN65Ylb.iDRAKebWx4jcaTm6yyikEkMJChyxovW";
 const JSONBIN_BIN_ID = "6ae2c0feac6210605a5ade70";
@@ -148,6 +214,10 @@ const HEADERS = {"Content-Type":"application/json","X-Master-Key":JSONBIN_KEY};
 const TEACHER_PASSWORD = "alevelchinese";
 
 let currentRole="student", studentMode="practice", currentPlayingListId="", vocabulary=[], currentIndex=0, score=0, isAnswered=false, playerName="", playerId="player_"+(crypto.randomUUID?crypto.randomUUID():Math.random().toString(36).slice(2)), cloudData={}, allLists={}, currentTeacherListId="", selectedListIdForUI="";
+
+function toggleGrade(el) {
+  el.classList.toggle("selected");
+}
 
 function setRole(role){
   currentRole=role;
@@ -173,6 +243,7 @@ async function fetchCloudData(){
   if(!cloudData.lists || typeof cloudData.lists!=="object") cloudData.lists={};
   if(!Array.isArray(cloudData.history)) cloudData.history=[];
   if(!cloudData.players || typeof cloudData.players!=="object") cloudData.players={};
+  if(!Array.isArray(cloudData.classes)) cloudData.classes=[]; 
   allLists=cloudData.lists;
   return true;
 }
@@ -185,12 +256,117 @@ function showFeedback(id,text,cls="correct"){
   const el=document.getElementById(id);if(!el)return;el.textContent=text;el.className="feedback "+cls;
 }
 
+// =============== 班级逻辑 ===============
+
+function renderClasses() {
+  const container = document.getElementById("class-manage-list");
+  container.innerHTML = "";
+  if(!cloudData.classes || cloudData.classes.length === 0) {
+    container.innerHTML = '<span class="small">暂无班级，请在上方添加。</span>';
+    return;
+  }
+  
+  cloudData.classes.forEach((cls, index) => {
+    const div = document.createElement("div");
+    div.className = "class-item";
+    div.innerHTML = `<span>${cls}</span><button onclick="deleteClass(${index})" title="删除">✖</button>`;
+    container.appendChild(div);
+  });
+
+  const selects = [
+    document.getElementById("new-list-class"),
+    document.getElementById("modal-class-select")
+  ];
+  selects.forEach(select => {
+    if(!select) return;
+    const val = select.value;
+    select.innerHTML = '<option value="">不限制班级（全年级通用）</option>';
+    cloudData.classes.forEach(cls => {
+      select.add(new Option(cls, cls));
+    });
+    if(cloudData.classes.includes(val)) select.value = val;
+  });
+}
+
+async function addNewClass() {
+  const input = document.getElementById("new-class-name");
+  const val = input.value.trim();
+  
+  if(!val) { alert("请输入班级名！"); return; }
+
+  try {
+    await fetchCloudData();
+    const exists = cloudData.classes.some(c => String(c).trim() === val);
+    if (exists) { 
+      alert("该班级已存在！"); 
+      return; 
+    }
+    
+    cloudData.classes.push(val);
+    await pushToCloud(cloudData);
+    
+    input.value = "";
+    renderClasses();
+    showFeedback("lobby-feedback", `✅ 成功添加班级：${val}`);
+  } catch(e) {
+    showFeedback("lobby-feedback", `❌ ${e.message}`, "wrong");
+  }
+}
+
+async function deleteClass(index) {
+  const cls = cloudData.classes[index];
+  if(!confirm(`确定要删除班级【${cls}】吗？\n这不会删除词单，但使用了该班级的词单将变为“全年级通用”。`)) return;
+  
+  try {
+    await fetchCloudData();
+    cloudData.classes.splice(index, 1);
+    Object.keys(cloudData.lists).forEach(id => {
+      if(cloudData.lists[id].class === cls) {
+        delete cloudData.lists[id].class;
+      }
+    });
+    await pushToCloud(cloudData);
+    allLists = cloudData.lists;
+    renderClasses();
+    renderTeacherLobby();
+    updateStudentDropdown();
+    showFeedback("lobby-feedback", `🗑️ 班级【${cls}】已删除。`, "skip");
+  } catch(e) {
+    showFeedback("lobby-feedback", `❌ ${e.message}`, "wrong");
+  }
+}
+
+// =============== 学生端逻辑 ===============
+
+function updateStudentClassDropdown() {
+  const gradeSelect = document.getElementById("student-grade-select");
+  const classSelect = document.getElementById("student-class-select");
+  const selectedGrade = gradeSelect.value;
+  
+  classSelect.innerHTML = '<option value="">请选择班级（可选）</option>';
+  
+  if (!selectedGrade) {
+    classSelect.add(new Option("请先选择年级...", ""));
+    updateStudentDropdown();
+    return;
+  }
+  
+  if(cloudData.classes && cloudData.classes.length > 0) {
+    cloudData.classes.forEach(cls => {
+      classSelect.add(new Option(cls, cls));
+    });
+  }
+  updateStudentDropdown();
+}
+
 function updateStudentDropdown(){
   const gradeSelect = document.getElementById("student-grade-select");
+  const classSelect = document.getElementById("student-class-select");
   const select=document.getElementById("student-list-select");
   if(!select)return;
   
   const selectedGrade = gradeSelect.value;
+  const selectedClass = classSelect.value;
   select.innerHTML="";
   
   if (!selectedGrade) {
@@ -200,19 +376,31 @@ function updateStudentDropdown(){
 
   const valid=Object.keys(allLists).filter(id => {
     const list = allLists[id];
-    return list.grade === selectedGrade && (studentMode==="practice" || list.examOpen===true);
+    const isGradeMatch = Array.isArray(list.grades) ? list.grades.includes(selectedGrade) : list.grade === selectedGrade;
+    const isClassMatch = !list.class || list.class === selectedClass;
+    return isGradeMatch && isClassMatch && (studentMode==="practice" || list.examOpen===true);
   });
 
   if(!valid.length){
-    select.add(new Option(studentMode==="practice" ? "该年级暂无词单" : "该年级暂无开放的测验", ""));
+    select.add(new Option(studentMode==="practice" ? "该群体暂无词单" : "该群体暂无开放的测验", ""));
     return;
   }
   
-  valid.forEach(id=>select.add(new Option(allLists[id].name||id,id)));
+  valid.forEach(id=>{
+    let label = allLists[id].name || id;
+    if(allLists[id].class) label += ` (${allLists[id].class})`;
+    select.add(new Option(label, id));
+  });
 }
 
 window.addEventListener("load", async () => {
-  try { await fetchCloudData(); updateStudentDropdown(); } catch(e) { showFeedback("login-feedback", "❌ "+e.message, "wrong"); }
+  try { 
+    await fetchCloudData(); 
+    renderClasses();
+    updateStudentClassDropdown();
+  } catch(e) { 
+    showFeedback("login-feedback", "❌ "+e.message, "wrong"); 
+  }
 });
 
 async function login(){
@@ -221,7 +409,7 @@ async function login(){
   
   if(currentRole==="teacher"){
     if(document.getElementById("teacher-password").value!==TEACHER_PASSWORD){alert("教师密码错误！");return}
-    try{await fetchCloudData();playerName=name;document.getElementById("login-area").style.display="none";document.getElementById("teacher-area").style.display="block";document.getElementById("leaderboard-area").style.display="block";renderTeacherLobby();return}
+    try{await fetchCloudData();playerName=name;document.getElementById("login-area").style.display="none";document.getElementById("teacher-area").style.display="block";document.getElementById("leaderboard-area").style.display="block";renderTeacherLobby();renderClasses();return}
     catch(e){showFeedback("login-feedback","❌ "+e.message,"wrong");return}
   }
   
@@ -241,17 +429,27 @@ async function login(){
   if(studentMode==="exam"){await updateCloudStatus("答题中 (1/"+vocabulary.length+")",false,listId)}
 }
 
+// =============== 教师端逻辑 ===============
+
 function renderTeacherLobby(){
   document.getElementById("teacher-lobby").classList.remove("hidden");document.getElementById("teacher-editor").classList.add("hidden");
   const container=document.getElementById("teacher-list-container");container.innerHTML="";
   const ids=Object.keys(allLists||{});
   if(!ids.length){container.innerHTML='<div class="small" style="padding:18px;text-align:center">暂无词单，请创建一个词单。</div>';selectedListIdForUI="";updateExamButton();return}
   if(!selectedListIdForUI||!allLists[selectedListIdForUI])selectedListIdForUI=ids[0];
+  
   ids.forEach(id=>{
     const div=document.createElement("div");div.className="list-item"+(id===selectedListIdForUI?" active":"");
     const left=document.createElement("span");
-    const gradeTag = allLists[id].grade ? `<span class="tag">${allLists[id].grade}</span>` : '';
-    left.innerHTML = (allLists[id].examOpen?"🟢 ":"⚪ ") + gradeTag + (allLists[id].name||id);
+    
+    let tagsHtml = '';
+    const listGrades = allLists[id].grades || (allLists[id].grade ? [allLists[id].grade] : []);
+    listGrades.forEach(g => { tagsHtml += `<span class="tag">${g}</span>`; });
+    if (allLists[id].class) {
+      tagsHtml += `<span class="tag tag-class">${allLists[id].class}</span>`;
+    }
+    
+    left.innerHTML = (allLists[id].examOpen?"🟢 ":"⚪ ") + tagsHtml + " " + (allLists[id].name||id);
     const right=document.createElement("span");right.className="small";right.textContent=(allLists[id].words||[]).length+" 题";
     div.append(left,right);div.onclick=()=>{selectedListIdForUI=id;renderTeacherLobby();renderLeaderboard()};container.appendChild(div);
   });
@@ -273,14 +471,98 @@ async function toggleExamState(){
 }
 
 async function createNewList(){
-  const grade=document.getElementById("new-list-grade").value;
+  const checkedBoxes = document.querySelectorAll("#new-list-grades .grade-checkbox.selected");
+  const selectedGrades = Array.from(checkedBoxes).map(el => el.dataset.grade);
+  const selectedClass = document.getElementById("new-list-class").value;
   const name=document.getElementById("new-list-name").value.trim();
-  if(!grade){alert("请选择年级！");return}
+  
+  if(selectedGrades.length === 0){alert("请至少勾选一个年级！");return}
   if(!name){alert("请输入词单名字！");return}
+  
   const btn=document.getElementById("btn-create-list");btn.disabled=true;
-  try{await fetchCloudData();const id="list_"+Date.now();cloudData.lists[id]={name,grade,words:[],examOpen:false};await pushToCloud(cloudData);allLists=cloudData.lists;selectedListIdForUI=id;document.getElementById("new-list-name").value="";document.getElementById("new-list-grade").value="";renderTeacherLobby();updateStudentDropdown();showFeedback("lobby-feedback","✅ 成功创建词单："+name)}
-  catch(e){showFeedback("lobby-feedback","❌ "+e.message,"wrong")}
+  try{
+    await fetchCloudData();
+    const id="list_"+Date.now();
+    cloudData.lists[id]={name, grades: selectedGrades, class: selectedClass, words:[], examOpen:false};
+    await pushToCloud(cloudData);
+    allLists=cloudData.lists;
+    selectedListIdForUI=id;
+    document.getElementById("new-list-name").value="";
+    document.getElementById("new-list-class").value="";
+    document.querySelectorAll("#new-list-grades .grade-checkbox").forEach(el => el.classList.remove("selected")); 
+    renderTeacherLobby();updateStudentDropdown();
+    showFeedback("lobby-feedback","✅ 成功创建词单："+name);
+  }catch(e){showFeedback("lobby-feedback","❌ "+e.message,"wrong")}
   finally{btn.disabled=false}
+}
+
+function openModifyGradeModal() {
+  if(!selectedListIdForUI)return alert("请先选择词单");
+  const list = allLists[selectedListIdForUI];
+  const currentGrades = list.grades || (list.grade ? [list.grade] : []);
+  
+  const checkboxes = document.querySelectorAll("#modal-grade-checkboxes .grade-checkbox");
+  checkboxes.forEach(el => {
+    if(currentGrades.includes(el.dataset.grade)) {
+      el.classList.add("selected");
+    } else {
+      el.classList.remove("selected");
+    }
+  });
+
+  const classSelect = document.getElementById("modal-class-select");
+  classSelect.value = list.class || "";
+  
+  document.getElementById("modal-feedback").textContent = "";
+
+  document.getElementById("grade-modal").style.display = "flex";
+}
+
+function closeModal() {
+  document.getElementById("grade-modal").style.display = "none";
+}
+
+async function saveGradeModifications() {
+  const btn = document.getElementById("btn-save-grade");
+  const fb = document.getElementById("modal-feedback");
+  
+  const checkedBoxes = document.querySelectorAll("#modal-grade-checkboxes .grade-checkbox.selected");
+  const newGrades = Array.from(checkedBoxes).map(el => el.dataset.grade);
+  const newClass = document.getElementById("modal-class-select").value;
+  
+  if(newGrades.length === 0){ 
+    fb.textContent = "❌ 至少需要保留一个年级！";
+    fb.className = "feedback wrong";
+    return; 
+  }
+
+  btn.textContent = "保存中...";
+  btn.disabled = true;
+  fb.textContent = "";
+
+  try{
+    await fetchCloudData();
+    cloudData.lists[selectedListIdForUI].grades = newGrades;
+    if(newClass) {
+      cloudData.lists[selectedListIdForUI].class = newClass;
+    } else {
+      delete cloudData.lists[selectedListIdForUI].class;
+    }
+    delete cloudData.lists[selectedListIdForUI].grade; 
+    await pushToCloud(cloudData);
+    allLists = cloudData.lists;
+    
+    closeModal();
+    renderTeacherLobby();
+    updateStudentDropdown();
+    showFeedback("lobby-feedback", `✅ 成功修改适用群体`);
+  }catch(e){ 
+    fb.textContent = "❌ 保存失败：" + e.message;
+    fb.className = "feedback wrong";
+  }finally{
+    btn.textContent = "保存";
+    btn.disabled = false;
+  }
 }
 
 async function renameList(){
@@ -338,6 +620,7 @@ function parseBulk(){
 async function saveQuestions(){
   if(!currentTeacherListId)return;
   const btn=document.getElementById("btn-save-questions");btn.disabled=true;
+  btn.textContent = "保存中...";
   try{
     const words=[];
     document.querySelectorAll(".edit-row").forEach(row=>{
@@ -347,8 +630,13 @@ async function saveQuestions(){
     await fetchCloudData();if(!cloudData.lists[currentTeacherListId])throw new Error("词单已不存在，请返回大厅刷新。");
     cloudData.lists[currentTeacherListId].words=words;if(cloudData.lists[currentTeacherListId].examOpen===undefined)cloudData.lists[currentTeacherListId].examOpen=false;
     await pushToCloud(cloudData);allLists=cloudData.lists;updateStudentDropdown();showFeedback("teacher-feedback",`✅ 保存成功，共 ${words.length} 题。`);
-  }catch(e){showFeedback("teacher-feedback","❌ "+e.message,"wrong")}
-  finally{btn.disabled=false}
+  }catch(e){
+    showFeedback("teacher-feedback","❌ 网络异常，保存失败："+e.message,"wrong");
+  }
+  finally{
+    btn.disabled=false;
+    btn.textContent = "💾 保存当前词单";
+  }
 }
 
 async function toggleRecordBoard(){
@@ -398,7 +686,6 @@ function loadNext(){
   if(studentMode==="exam")updateCloudStatus(`答题中 (${currentIndex+1}/${vocabulary.length})`,false,currentPlayingListId);
 }
 
-// 核心修复：交卷防断网，自动重试
 async function endGame(){
   document.getElementById("quiz-area").style.display="none";
   document.getElementById("result-area").style.display="block";
@@ -422,10 +709,10 @@ async function endGame(){
       const now=new Date(),timeStr=`${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日 ${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
       
       const currentList = cloudData.lists[currentPlayingListId] || {};
-      const gradeName = currentList.grade || "未知年级";
+      const gradeStr = currentList.grades ? currentList.grades.join(" / ") : (currentList.grade || "未知年级");
       
       cloudData.history=Array.isArray(cloudData.history)?cloudData.history:[];
-      cloudData.history.push({time:timeStr,name:playerName,grade:gradeName,listName:currentList.name||"未知词单",score:`${score} / ${vocabulary.length}`,submittedAt:now.toISOString(),listId:currentPlayingListId});
+      cloudData.history.push({time:timeStr,name:playerName,grade:gradeStr,listName:currentList.name||"未知词单",score:`${score} / ${vocabulary.length}`,submittedAt:now.toISOString(),listId:currentPlayingListId});
       
       await pushToCloud(cloudData);
       success = true;
@@ -436,7 +723,7 @@ async function endGame(){
         document.getElementById("result-desc").textContent="❌ 成绩保存失败：网络连接超时，请截图联系老师。";
         return;
       }
-      await new Promise(r => setTimeout(r, 1000)); // 等待1秒后重试
+      await new Promise(r => setTimeout(r, 1000));
     }
   }
 
